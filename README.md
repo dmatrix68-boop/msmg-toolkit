@@ -1,37 +1,23 @@
 <div align="center">
-  <h1>I’ve switched to Linux (Arch btw).</h1>
-  <a href="https://msmgtoolkit.in" target="_blank">
   <img src="https://user-images.githubusercontent.com/89072438/168812773-7dc24fec-deb5-4105-ad19-4d00b9825adf.png" alt="MSMG Toolkit Logo">
 </a>
 </div>
 
 <h1 align="center">MSMG Toolkit</h1>
-<div align="center">This is an <strong>UnOfficial</strong> backup repository for <strong>MSMG Toolkit</strong>.
-
-</div>
+<div align="center">This is an <strong>UnOfficial</strong> backup repository for <strong>MSMG Toolkit</strong>.</div>
 
 <br>
 
-<!-- [![MSMG-Toolkit](https://socialify.git.ci/thecodermehedi/msmg-toolkit/image?description=1&font=Jost&forks=1&name=1&owner=1&pattern=Solid&stargazers=1&theme=Auto)](https://github.com/thecodermehedi/msmg-toolkit) -->
-
-<!-- ![msmg-toolkit](./msmg-toolkit-cover.png) -->
-
 <div align="center">
 
-[![GitHub repo stars](https://img.shields.io/github/stars/thecodermehedi/msmg-toolkit?style=flat&logo=github&logoColor=whitesmoke&label=Stars)](https://github.com/thecodermehedi/msmg-toolkit/stargazers)&#160;
-[![GitHub repo forks](https://img.shields.io/github/forks/thecodermehedi/msmg-toolkit?style=flat&logo=github&logoColor=whitesmoke&label=Forks)](https://github.com/thecodermehedi/msmg-toolkit/network)&#160;
-[![GitHub repo watchers](https://img.shields.io/github/watchers/thecodermehedi/msmg-toolkit?style=flat&logo=github&logoColor=whitesmoke&label=Watchers)](https://github.com/thecodermehedi/msmg-toolkit/watchers)&#160;
-[![GitHub repo size](https://img.shields.io/github/repo-size/thecodermehedi/msmg-toolkit?style=flat&logo=github&logoColor=whitesmoke&label=Repo%20Size)](https://github.com/thecodermehedi/msmg-toolkit/archive/refs/heads/main.zip)
+[![GitHub repo stars](https://img.shields.io/github/stars/mehedi-codes/msmg-toolkit?style=for-the-badge&logo=github&logoColor=whitesmoke&label=Stars)](https://github.com/mehedi-codes/msmg-toolkit/stargazers)&#160;
+[![GitHub repo forks](https://img.shields.io/github/forks/mehedi-codes/msmg-toolkit?style=for-the-badge&logo=github&logoColor=whitesmoke&label=Forks)](https://github.com/mehedi-codes/msmg-toolkit/network)&#160;
+[![GitHub repo size](https://img.shields.io/github/repo-size/mehedi-codes/msmg-toolkit?style=for-the-badge&logo=github&logoColor=whitesmoke&label=Repo%20Size)](https://github.com/mehedi-codes/msmg-toolkit/archive/refs/heads/main.zip)
 
 </div>
 
-<div align="center">
 
-[![Dev.to blog](https://img.shields.io/badge/dev.to-0A0A0A?style=for-the-badge&logo=dev.to&logoColor=white)](https://dev.to/thecodermehedi/msmg-toolkit-a-tool-for-customizing-and-optimizing-windows-installations-1g7b) [![Medium](https://img.shields.io/badge/Medium-12100E?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@thecodermehedi/msmg-toolkit-a-tool-for-customizing-and-optimizing-windows-installations-c7816a2029cf)
-
-</div>
-
-➡️ MSMG Toolkit is a tool that helps users customize and optimize Microsoft Windows installations. It is a useful tool for those who want to create a custom Windows installation disk that fits their specific needs. This tool is particularly useful for creating custom, bloat-free Windows installations.
+MSMG Toolkit is a tool that helps users customize and optimize Microsoft Windows installations. It is a useful tool for those who want to create a custom Windows installation disk that fits their specific needs. This tool is particularly useful for creating custom, bloat-free Windows installations.
 
 ## 👉 Precautions
 
@@ -52,15 +38,11 @@
 
 ## 👉 Installation
 
-⬇️ **Download the latest version:** <a href="https://raw.githubusercontent.com/thecodermehedi/msmg-toolkit/main/Toolkit_v13.7.7z" download> Toolkit_v13.7.7z </a>
+<!-- <div align="center"> -->
 
-⬇️ **Official Download Page :** [msmgtoolkit/download](https://msmgtoolkit.in/downloads.html)
+[![Latest Version](https://img.shields.io/badge/Download-Toolkit__v13.7.7z-2ea44f?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/mehedi-codes/msmg-toolkit/main/Toolkit_v13.7.7z) [![Toolkit Archive](https://img.shields.io/badge/Archive-download.ru-0969da?style=for-the-badge&logo=cloud)](https://download.ru/folders/BiHp44Yh) [![Toolkit Packs](https://img.shields.io/badge/Packs-download.ru-0969da?style=for-the-badge&logo=package)](https://download.ru/folders/xnIjBhOt)
 
-⬇️ **Toolkit Archive:**
-[download.ru/archives](https://download.ru/folders/BiHp44Yh)
-
-⬇️ **Toolkit Packs:**
-[download.ru/packs](https://download.ru/folders/xnIjBhOt)
+<!-- </div> -->
 
 ## 👉 Features
 
@@ -228,7 +210,6 @@
 - [NTLite](https://www.ntlite.com/)
 - [Tiny11Builder](https://github.com/ntdevlabs/tiny11builder)
 - [WinUtil](https://github.com/ChrisTitusTech/winutil)
-- [Windows10Debloater](https://github.com/Sycnex/Windows10Debloater)
 
 ### 👉 Copyright
 
