@@ -1,216 +1,201 @@
-<div align="center">
-  <img src="https://user-images.githubusercontent.com/89072438/168812773-7dc24fec-deb5-4105-ad19-4d00b9825adf.png" alt="MSMG Toolkit Logo">
-</a>
-</div>
+<h1 align="center">MSMG Toolkit PS7</h1>
 
-<h1 align="center">MSMG Toolkit</h1>
-<div align="center">This is an <strong>UnOfficial</strong> backup repository for <strong>MSMG Toolkit</strong>.</div>
+<p align="center">
+Windows-11-Image-Servicing mit PowerShell 7 – eine <strong>inoffizielle Neuentwicklung</strong> auf Basis des MSMG Toolkit 13.7.<br>
+Nicht mit MSMG oder Microsoft verbunden.
+</p>
 
-<br>
+---
 
-<div align="center">
+Das Toolkit passt Windows-11-Installationsmedien an: Treiber, Updates, Sprachpakete und Features
+integrieren, Apps und Komponenten entfernen, Tweaks setzen, eine Antwortdatei erzeugen und das
+Ergebnis als ISO oder bootfähigen USB-Stick ausgeben. Die Funktionalität des alten Batch-Toolkits
+(27.700 Zeilen `Toolkit.cmd` + Drittanbieter-Binaries) wurde als PowerShell-7-Modul neu aufgebaut,
+das ausschließlich die DISM-Bordmittel von Windows 11 verwendet.
 
-[![GitHub repo stars](https://img.shields.io/github/stars/mehedi-codes/msmg-toolkit?style=for-the-badge&logo=github&logoColor=whitesmoke&label=Stars)](https://github.com/mehedi-codes/msmg-toolkit/stargazers)&#160;
-[![GitHub repo forks](https://img.shields.io/github/forks/mehedi-codes/msmg-toolkit?style=for-the-badge&logo=github&logoColor=whitesmoke&label=Forks)](https://github.com/mehedi-codes/msmg-toolkit/network)&#160;
-[![GitHub repo size](https://img.shields.io/github/repo-size/mehedi-codes/msmg-toolkit?style=for-the-badge&logo=github&logoColor=whitesmoke&label=Repo%20Size)](https://github.com/mehedi-codes/msmg-toolkit/archive/refs/heads/main.zip)
+## Inhalt
 
-</div>
+- [Was hat sich gegenüber 13.7 geändert?](#was-hat-sich-gegenüber-137-geändert)
+- [Voraussetzungen](#voraussetzungen)
+- [Schnellstart](#schnellstart)
+- [Ordnerstruktur](#ordnerstruktur)
+- [Empfohlener Ablauf](#empfohlener-ablauf)
+- [Automatisierung: Build-Profile und Modul](#automatisierung-build-profile-und-modul)
+- [Tweaks](#tweaks)
+- [Bekannte Einschränkungen](#bekannte-einschränkungen)
+- [Entwicklung](#entwicklung)
+- [Lizenz](#lizenz)
 
+## Was hat sich gegenüber 13.7 geändert?
 
-MSMG Toolkit is a tool that helps users customize and optimize Microsoft Windows installations. It is a useful tool for those who want to create a custom Windows installation disk that fits their specific needs. This tool is particularly useful for creating custom, bloat-free Windows installations.
+| Bereich | MSMG Toolkit 13.7 | MSMG Toolkit PS7 |
+|---|---|---|
+| Sprache | Batch (`Toolkit.cmd`) | PowerShell-7-Modul `MSMGToolkit` |
+| Quell-Images | Windows 7, 8.1, 10, 11, Server 2008 R2 – 2022 | **nur Windows 11** (Build ≥ 22000, x64/arm64) |
+| Host-System | Windows 7 – 11 | **Windows 11** |
+| Werkzeuge | mitgelieferte DISM-Kopien, NSudo, 7-Zip, wimlib, ToolkitHelper, ResourceHacker, dvdburn, esddecrypt | DISM-Cmdlets des Hosts, `oscdimg.exe` aus dem Windows ADK (optional, sonst IMAPI2) |
+| Rechte | Start als TrustedInstaller (NSudo) | Administrator; geschützte Registry-Schlüssel über SeBackup/SeRestore-Privilegien, ohne ACL-Änderung |
+| Tweaks | fest im Skript | datengetrieben in `Config\Tweaks.psd1`, erweiterbar |
+| Automatisierung | – | Build-Profile (`Start.ps1 -Build profil.psd1`) und exportierte Cmdlets |
+| Sitzungen | Abbruch = Aufräumen beim nächsten Start | gemountete Images werden erkannt, Sitzung kann fortgesetzt werden |
+| Tests | – | Pester-Tests + PSScriptAnalyzer in GitHub Actions |
 
-## 👉 Precautions
+**Entfernt, weil für Windows 11 überholt:** Integration von IE11, .NET 4.6.2/4.8/4.8.1-Paketen, .NET Core 3.1/6/7,
+WMF 5.1, RDP 8.x, Edge Legacy/Chromium/WebView2-Paketen, Win32-Rechner und Skins, Sidebar, Microsoft Games,
+DirectX 9.0c, DaRT, Thin-PC-Add-ons, Windows To Go, Mixed Reality, Office-UWP-Apps, Media-Center- und
+Vorab-Aktivierungs-Token, Windows-7-ESU-Patch, Terminalserver- und UxTheme-Systemdatei-Patches,
+Brennen auf DVD, Kopieren von DVD-Laufwerken ohne Dateisystemzugriff, Entschlüsseln verschlüsselter ESDs,
+Tweaks für Cortana/Meet Now/News and Interests sowie die ToolkitHelper-Komponentenentfernung.
 
-- MSMG Toolkit is not supported by Microsoft and is a third-party tool, so use at your own risk.
-- MSMG Toolkit can alter Windows significantly, so understand the risks before use, especially if unfamiliar with Windows OS and components.
-- Use MSMG Toolkit only on a clean Windows installation. Modifying a customized system may cause unexpected results.
-- Experienced users should use MSMG Toolkit with caution, knowing the risks. Backup your system before making significant changes to your Windows installation.
+**Neu:** Features on Demand aus der LOF-ISO, Setup Dynamic Updates, Post-Setup-Installer per
+`SetupComplete.cmd` (z. B. PowerShell 7, VC++-Runtime, eigene Tools), Tweaks für Copilot/Recall/Bing-Suche/Telemetrie,
+Unattend-Generator mit lokalem Konto und Hardware-Check-Bypass, WIM↔ESD-Konvertierung, Editionswechsel
+per `Set-WindowsEdition`, Build-Profile.
 
-## 👉 System Requirements
+> Ein Fehler des Originals wurde dabei behoben: Der Tweak „Downloads-Ordner nicht nach Datum gruppieren"
+> schrieb in `HKLM\SOFTWARE` des **Host-Systems** statt in das Image.
 
-- Windows 7 with SP1 / Windows 8.1 / Windows 10 / Windows 11 / Server 2008 R2 / Server 2012 R2 / Server 2016 / Server 2019 / Server 2022 LTSC Installation Disc DVD/ISO.
+Das ursprüngliche Archiv `Toolkit_v13.7.7z` ist in der Git-Historie (Commit `a7ceccb`) weiterhin verfügbar.
 
-- Windows 7 with SP1 / Windows 8.1 / Windows 10 / Windows 11 Host Operating System for Servicing Windows 7 / Windows 8.1 source images.
+## Voraussetzungen
 
-- Windows 8.1 / Windows 10 / Windows 11 Host Operating System for Servicing Windows 7 / 8.1 / 10 / 11 source images.
+- **Host:** Windows 11 (x64 oder arm64), Administratorrechte
+- **PowerShell 7.4 oder neuer:** `winget install Microsoft.PowerShell`
+- **Quelle:** Windows-11-Installationsmedium (ISO, DVD/USB, entpackter Ordner oder MCT-/UUP-ESD), 21H2 bis 25H2
+- Optional: **Windows ADK – Deployment Tools** für `oscdimg.exe` (empfohlen für ISO-Erstellung; ohne ADK wird IMAPI2 verwendet)
+- Optional: **Windows PE Add-on des ADK** für WinPE-Sprachpakete (Sprachintegration in boot.wim/winre.wim)
+- Genügend freier Speicher (ca. 25–40 GB je nach Anzahl der Editionen) und ein kurzer Pfad ohne Leerzeichen, z. B. `C:\Toolkit`
 
-- The ToolkitHelper.exe requires Microsoft .NET Framework 4.8 or 4.9 runtime pack.
+## Schnellstart
 
-## 👉 Installation
+1. Repository als ZIP herunterladen, **Eigenschaften → Zulassen** (bzw. `Get-ChildItem -Recurse | Unblock-File`) und nach `C:\Toolkit` entpacken.
+2. `Start.cmd` doppelklicken (oder `pwsh -File .\Start.ps1`). Das Skript fordert selbst Administratorrechte an.
+3. Haftungshinweis mit **A** bestätigen.
+4. **Source → Import media from an ISO file** und danach **Select source from <DVD> folder**.
 
-<!-- <div align="center"> -->
+## Ordnerstruktur
 
-[![Latest Version](https://img.shields.io/badge/Download-Toolkit__v13.7.7z-2ea44f?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/mehedi-codes/msmg-toolkit/main/Toolkit_v13.7.7z) [![Toolkit Archive](https://img.shields.io/badge/Archive-download.ru-0969da?style=for-the-badge&logo=cloud)](https://download.ru/folders/BiHp44Yh) [![Toolkit Packs](https://img.shields.io/badge/Packs-download.ru-0969da?style=for-the-badge&logo=package)](https://download.ru/folders/xnIjBhOt)
+| Ordner | Inhalt |
+|---|---|
+| `MSMGToolkit` | PowerShell-Modul (`Private` = interne Helfer, `Public` = Funktionsbereiche) |
+| `Config` | `Tweaks.psd1` (Tweak-Katalog), `BuildProfile.example.psd1`, `WimScript.ini`, `Settings.user.json` (Optionen) |
+| `Lists` | Arbeitslisten für Entfernen/Features; `Lists\Templates` enthält Vorlagen für 22H2/23H2 und 24H2/25H2 |
+| `XMLs` | Standard-App-Zuordnungen, Start-/Taskleisten-Layouts |
+| `DVD` | entpacktes Installationsmedium (wird angelegt) |
+| `Drivers\Install\|Boot\|WinRE` | Treiber (\*.inf, Unterordner erlaubt) |
+| `Updates\Install\|Boot\|WinRE\|SetupDU` | \*.msu/\*.cab – siehe [Updates/README.md](Updates/README.md) |
+| `Packs` | Sprachpakete, FODs, Apps, Post-Setup-Installer – siehe [Packs/README.md](Packs/README.md) |
+| `Custom` | eigene Dateien, Schriften, .reg-Dateien, winre.wim, `Autounattend.xml` – siehe [Custom/README.md](Custom/README.md) |
+| `Mount`, `Temp`, `Logs`, `ISO` | Arbeitsordner (werden angelegt, nicht versioniert) |
 
-<!-- </div> -->
+## Empfohlener Ablauf
 
-## 👉 Features
+| Schritt | Menü |
+|---|---|
+| 1. Medium importieren und Edition(en) auswählen, optional boot.wim und winre.wim mit bearbeiten | **Source** |
+| 2. .NET 3.5 → Sprachpakete → Features on Demand → Treiber → **Updates** → Apps | **Integrate** |
+| 3. Apps, Pakete, Capabilities entfernen (Listen vorher aus `Lists\Templates` laden und prüfen) | **Remove** |
+| 4. Features, App-Zuordnungen, Startlayout, .reg-Dateien, Tweaks | **Customize** |
+| 5. `Autounattend.xml` erzeugen oder eigene kopieren | **Unattended** |
+| 6. Komponentenbereinigung, dann speichern (optional mit WIM-Rebuild) | **Apply** |
+| 7. ISO oder USB-Stick erstellen | **Target** |
 
-- **Localization Packs Integration**
+Hinweise:
 
-  - Integrate Windows/WinPE Language Packs, Language Features Packs and Localize your Windows Installation.
+- Updates **nach** Sprachpaketen/FODs/.NET 3.5 integrieren. Werden nach dem Entfernen von Komponenten noch Updates integriert,
+  können entfernte Komponenten zurückkommen.
+- Windows 11 24H2+ nutzt Checkpoint-Updates: Checkpoint-CU und aktuelles CU gemeinsam in `Updates\Install` legen – sie werden in KB-Reihenfolge integriert.
+- USB-Sticks werden als FAT32 formatiert (MBR = BIOS + UEFI, GPT = nur UEFI); eine `install.wim` > 4 GB wird automatisch in `install.swm`-Teile gesplittet.
+- Die erzeugte Antwortdatei automatisiert bewusst **keine** Datenträgerpartitionierung – Setup fragt weiterhin nach dem Ziel.
 
-- **Drivers Integration**
+## Automatisierung: Build-Profile und Modul
 
-  - Integrate device drivers into the Windows Installation image and Windows Installation Boot image (Boot.wim).
+Ein Build-Profil beschreibt den kompletten Ablauf und macht Builds reproduzierbar:
 
-  - Import and integrate Host PC drivers into the Windows Installation image.
+```powershell
+Copy-Item .\Config\BuildProfile.example.psd1 .\Config\Firma-Win11-25H2.psd1
+# Profil anpassen, dann:
+.\Start.ps1 -Build .\Config\Firma-Win11-25H2.psd1
+```
 
-- **Feature Packs Integration**
+Alle Funktionen stehen auch als Cmdlets zur Verfügung (`Get-Command -Module MSMGToolkit`):
 
-  - Integrate Windows Feature Packs, Feature on Demand (FOD's) Packs, Inbox Apps, Add-on Packs.
+```powershell
+Import-Module .\MSMGToolkit\MSMGToolkit.psd1
+Import-TkSource -Path D:\ISO\Win11_25H2_German_x64.iso -Force
+Get-TkSourceImage | Format-Table ImageIndex, ImageName
+Select-TkSource -Index 6 -ServiceBoot -ServiceWinRE
+Add-TkDriver
+Add-TkUpdate
+Remove-TkProvisionedApp -ListPath .\Lists\Templates\RemoveApps_W11_24H2-25H2.txt
+Invoke-TkTweak -Recommended
+Write-TkUnattendXml -RegionalSource Image -Option @{ AccountName = 'Admin'; BypassNetworkRequirement = $true }
+Invoke-TkImageCleanup -ResetBase $true
+Save-TkSource -Rebuild $true
+New-TkIso
+```
 
-- **Updates Integration**
+## Tweaks
 
-  - Integrate Windows updates and service packs.
+Tweaks sind in `Config\Tweaks.psd1` definiert (Registry-Operationen auf SOFTWARE, SYSTEM, DEFAULT oder dem Standardbenutzer-Profil
+`NTUSER`). Eigene Tweaks lassen sich dort ohne Codeänderung ergänzen. „Empfohlen" = Teil von **R** im Menü bzw. `Invoke-TkTweak -Recommended`.
 
-- **Component Removal**
+| ID | Beschreibung | Kategorie | Empfohlen | Builds |
+|---|---|---|:-:|---|
+| `BypassHardwareCheck` | Bypass Windows 11 hardware checks (TPM, Secure Boot, CPU, RAM, storage) | Setup & OOBE |  |  |
+| `EnableLocalAccountOobe` | Allow OOBE without network / Microsoft account (BypassNRO) | Setup & OOBE |  |  |
+| `DisableBitLockerAutoEncryption` | Disable automatic BitLocker device encryption | Setup & OOBE |  |  |
+| `DisableOneDriveSetup` | Do not install OneDrive automatically for new users | Setup & OOBE |  |  |
+| `DisableEdgeFirstRun` | Hide the Microsoft Edge first run experience | Setup & OOBE |  |  |
+| `DisableConsumerFeatures` | Disable automatic installation of promoted / 3rd party apps | Privacy & AI | ✔ |  |
+| `DisableCopilot` | Disable Windows Copilot (policy and taskbar button) | Privacy & AI | ✔ | ab 22621 |
+| `DisableRecall` | Disable Recall / AI data analysis | Privacy & AI | ✔ | ab 26100 |
+| `DisableWebSearch` | Disable Bing web results in Start / Windows Search | Privacy & AI | ✔ |  |
+| `ReduceTelemetry` | Reduce diagnostic data, advertising ID and tailored experiences | Privacy & AI | ✔ |  |
+| `DisableDriverUpdates` | Disable automatic driver updates through Windows Update | Windows Update |  |  |
+| `PinFeatureRelease` | Stay on the current feature release (block automatic upgrades) | Windows Update |  |  |
+| `DisableReservedStorage` | Disable reserved storage for Windows Updates | Windows Update |  |  |
+| `EnableFullResetBase` | Allow component cleanup with ResetBase in the installed system | Windows Update |  |  |
+| `DisableWindowsUpdate` | Disable Windows Update completely | Windows Update |  |  |
+| `DisableDefender` | Disable Microsoft Defender Antivirus | Security |  |  |
+| `DisableFirewall` | Disable Windows Firewall (all profiles) | Security |  |  |
+| `DisableSmartScreen` | Disable SmartScreen and Smart App Control | Security |  |  |
+| `ShowFileExtensions` | Show file name extensions | Explorer & Taskbar | ✔ |  |
+| `EnableClassicContextMenu` | Use the classic (full) context menu | Explorer & Taskbar |  |  |
+| `DisableDownloadsGrouping` | Do not group the Downloads folder by date | Explorer & Taskbar | ✔ |  |
+| `TaskbarAlignLeft` | Align the taskbar to the left | Explorer & Taskbar |  |  |
+| `HideSearchBox` | Hide the taskbar search box | Explorer & Taskbar |  |  |
+| `HideTaskViewButton` | Hide the taskbar Task View button | Explorer & Taskbar |  |  |
+| `HideWidgets` | Disable Widgets (taskbar button and news feed) | Explorer & Taskbar | ✔ |  |
+| `HideChatIcon` | Hide the taskbar Chat (Teams) button | Explorer & Taskbar | ✔ | bis 22631 |
+| `DisableTeamsAutoInstall` | Do not install Microsoft Teams (personal) automatically | Explorer & Taskbar | ✔ | bis 22631 |
+| `EnablePhotoViewer` | Register the classic Windows Photo Viewer for common image types | Multimedia & Compatibility |  |  |
+| `EnableFMP3ProCodec` | Use the Fraunhofer IIS MPEG Layer-3 Professional codec | Multimedia & Compatibility |  |  |
+| `ForceLatestNetFramework` | Run .NET 2.0-3.5 programs on the newest .NET Framework | Multimedia & Compatibility |  |  |
 
-  - Reduce Windows footprint by removing unwanted components of your choice and simplify your installation time and free up drive space.
+## Bekannte Einschränkungen
 
-- **Customization**
+- Die tiefgehende Komponentenentfernung des Originals (`ToolkitHelper.exe`, Closed Source) ist nicht enthalten. Entfernt wird über DISM;
+  versteckte Pakete können per **Un-hide** sichtbar gemacht werden. Das ist mächtig, aber riskant – Images vor dem Rollout testen.
+- `BypassNRO` wird von neueren Windows-11-Builds teilweise ignoriert; zuverlässig ist ein lokales Konto in der Antwortdatei.
+- `DisableDefender` ist durch Tamper Protection auf aktuellen Builds nur eingeschränkt wirksam.
+- Der IMAPI2-Fallback für ISOs ist eine Notlösung; für produktive Medien das Windows ADK (`oscdimg.exe`) installieren.
+- Windows formatiert FAT32 nur bis 32 GB – auf größeren Sticks wird eine 32-GB-Partition angelegt.
+- Server-Images (z. B. Server 2025) lassen sich auswählen, die Vorlagen sind aber auf Client-Editionen ausgelegt.
 
-  - Customize Windows look and feel with custom cursors, themes and skin packs.
+## Entwicklung
 
-- **Deploy Windows Image**
+```powershell
+Install-Module Pester -MinimumVersion 5.5 -Scope CurrentUser
+Install-Module PSScriptAnalyzer -Scope CurrentUser
+Invoke-Pester -Path .\tests -Output Detailed
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\PSScriptAnalyzerSettings.psd1
+```
 
-  - Deploy Windows installation image either in .WIM/.ESD format through USB/DVD media.
+GitHub Actions führt beides bei jedem Push auf einem Windows-Runner aus (`.github/workflows/ci.yml`).
 
+## Lizenz
 
-<details>
-<summary>👈 List of things this Toolkit can do</summary>
-
-- Copy Source DVD Files from DVD Drive
-- Extract Source DVD Files from ISO Image
-- Extract Source DVD Files from OEM/IMG Image
-- Convert Windows Store ESD Image to WIM Image
-- Convert Windows Media Creation Tool (MCT) Image to WIM Image
-- Convert Windows ESD Image to WIM Image
-- Convert Windows WIM Image to ESD Image
-- Convert Source WIM Editions
-- Integrate Windows Updates
-- Integrate WHD Updates Repository Updates
-- Integrate Windows Language Packs
-- Integrate Windows Device Drivers
-- Integrate Microsoft. NET Framework 3.5
-- Integrate Microsoft. NET Framework 4.6.2 with Language Packs
-- Integrate Microsoft Internet Explorer 11 with Language Packs
-- Integrate Microsoft Data Deduplication
-- Integrate Microsoft Edge Browser App
-- Integrate Microsoft Remote Desktop Protocol 8.0 & 8.1
-- Integrate Microsoft Win32 Calculator
-- Integrate Windows Management Framework 5.1
-- Integrate Windows Multimedia Restricted Codecs
-- Integrate Windows Subsystem for Linux (WSL)
-- Integrate Windows System Restore
-- Integrate Windows To Go Workspace
-- Integrate Microsoft Default Metro Apps
-- Integrate Microsoft DaRT Tools to Boot & Recovery Images
-- Integrate Windows Thin PC Add-on Packages
-- Integrate Microsoft DirectX 9.0c
-- Integrate Microsoft Games
-- Integrate Windows Sidebar
-- Integrate Windows 8.1 Media Center Generic Activation Tokens
-- Integrate Windows 8.1 Pre-Activation Data & Tokens
-- Integrate Terminal Server Patch
-- Integrate Fraunhofer IIS MPEG Layer-3 Professional Codec Tweak
-- Integrate Custom Themes UxTheme Patch
-- Integrate Custom Windows Recovery Environment (WinRE)
-- Integrate Custom Default User Account Pictures
-- Integrate Custom System Files
-- Remove All Default Metro Apps
-- Remove Default Metro Apps Association
-- Remove Windows Components
-- Remove Windows Components using Package List.
-- Import Default Metro Apps Association from XML File
-- Export Default Metro Apps Association to an XML File
-- Make a DVD ISO Image
-- Burn an ISO Image to DVD
-- Copy Source to Bootable USB Flash Drive
-- Sync Source Boot and Install Images to Bootable USB Flash Drive
-- Burn an ISO Image to Bootable USB Flash Drive
-- Format a USB Flash Drive
-- WIM Manager to Display, Delete, Rename, Export, Split and Merge, Capture, Apply, and Cleanup WIM Image Indexes
-- Load/Unload WIM Image Registry for Modification
-
-</details>
-
-## 👉 Usage
-
-- Fist Download the Toolkit .
-
-- Unblock the downloaded Toolkit archive file by righting clicking on the archive file and choose `properties` and then click on `Unblock` button.
-
-- Extract the Toolkit archive to a folder with shorter folder path (e.g: `C:\Toolkit`)
-
-- Extract/Copy the Windows Source ISO/DVD Image/Disc contents to Toolkit's `<DVD>` folder.
-
-- Double Click on `Start.cmd` and Choose Yes to `Run as Administrator`.
-
-- Click on Toolkit's Command Window Control Box and Choose Properties.
-
-- If using `Windows 7/Windows 8.1` HOST OS then Go To Font Tab and Set the Font to `Consolas` and Font Size to `16`.
-
-- Go to Layout Tab and Increase the Height to 1000 in Screen Buffer Size Group Box.
-- Agree to Toolkit's `EULA` by pressing 'A' Key
-  .
-- Press `Enter` Key to Continue.
-
-- Integrate all the features you want to add except the `.NET Framework 3.5` using the Integrate Feature Menu.
-
-- Integrate the `Language pack` you want if required.
-
-- Integrate the `Updates`.
-
-- Remove the `Apps` you don't want.
-
-- Remove the `Components` you don't want.
-
-- Apply Changes; this will perform the `Cleanup`
-
-- Re-Mount the Source
-
-- Add the `.NET Framework 3.5` using the Integrate Feature Menu
-  .
-- Apply Changes.
-
-- Re-Build the Image.
-
-
-<details><summary>👈 Known Issues</summary>
-  
-- The Toolkit won't work with long folder path or folder pathname containing spaces or special characters.
-- Using Toolkit with Antivirus Programs enabled can affect the Toolkit's operations.
-- Toolkit's component removal engine (ToolkitHelper.exe) may be flagged as a Virus/Trojan/Malware Program, don't worry it's just a false positive sign.
-- The Toolkit won't support source images pre-serviced with other similar tools.
-- The Toolkit won't support source images with mixed architectures.
-- Windows 8.1 - Default Metro Apps Pack missing Office OneNote appx file.
-- Windows 8.1 - Integrating Windows Remote Server Administration Tool (RSAT) along with other features will break the integration with an error code 0x80092004.
-- Windows 7,8.1,10 v1507/v1511/v1607/v1703/v1709/v1803 Component removal has been removed temporarily.
-- Windows 10 v1809 - Integrating or Installing Windows Updates after the component removal can restore removed components empty resource files/folders.
-- Windows 10 v1903/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Performing Image Clean-up causes Ghost SFC error, Running SFC /SCANNOW command      will fix the issue.
-  
-- Windows 10 v1903/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Integrating or installing Windows updates after the component removal will          restore the removed components and this is due to the recent change in Microsoft update mechanism.
-  
-- Windows 10 v1809/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Component Removal requires a source image with supported cumulative update          integrated.
-  
-- Windows 10 v1809/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Component Removal do not support ARM64 source images.
-- Windows 10 v1809/v1909 - Removing Cortana breaks Start Menu, Taskbar and Settings App Search functionality.
-- Windows 10 v1809/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Removing Internet Explorer breaks DirectX 9.0c web installer and Photoshop CC web   installer.
-  
-- Windows 10 v1809/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Removing Map Control component breaks Photos App image information.
-- Windows 10 v1703/v1709/v1803/v1809/v1903/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Custom User Account Picture integration is not working in   Logon Screen although it's been displayed in Start Menu user icon.
-  
-- Windows 10 v1809/v1909/v2004/v20H2/v21H1/v21H2/v22H2, Windows 11 v21H2/v22H2 - Removing Cloud Experience Host requires fully unattended setup with                 SkipMachineOOBE setting enabled.
-
-</details>
-
-### 👉 Similar or Related Tools
-
-- [NTLite](https://www.ntlite.com/)
-- [Tiny11Builder](https://github.com/ntdevlabs/tiny11builder)
-- [WinUtil](https://github.com/ChrisTitusTech/winutil)
-
-### 👉 Copyright
-
-I hereby declare that I am not affiliated with the toolkit or its creator in any manner. Furthermore, I explicitly state that I bear no responsibility for the usage of this toolkit. The copyright for the toolkit remains the sole property of its original owner.
+Veränderte Version des MSMG Toolkit – Copyright (c) 2013-2024 MSMG. Es gelten die Bedingungen in [LICENSE.txt](LICENSE.txt).
+Dieses Projekt ist eine inoffizielle Neuentwicklung und steht in keiner Verbindung zu MSMG oder Microsoft.
+Windows ist eine eingetragene Marke der Microsoft Corporation. Nutzung auf eigene Gefahr.

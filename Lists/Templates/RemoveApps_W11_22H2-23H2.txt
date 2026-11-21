@@ -1,0 +1,57 @@
+; Provisioned apps of Windows 11 22H2 / 23H2 (build 22621 / 22631) - template for RemoveAppsList.txt
+; Matched against the app DisplayName (wildcards allowed). Not every app exists in every edition.
+; Lines starting with ';' are NOT removed - remove the ';' to include them.
+
+Clipchamp.Clipchamp
+Microsoft.549981C3F5F10
+Microsoft.BingNews
+Microsoft.BingWeather
+Microsoft.GamingApp
+Microsoft.GetHelp
+Microsoft.Getstarted
+Microsoft.MicrosoftOfficeHub
+Microsoft.MicrosoftSolitaireCollection
+Microsoft.People
+Microsoft.PowerAutomateDesktop
+Microsoft.Todos
+microsoft.windowscommunicationsapps
+Microsoft.WindowsFeedbackHub
+Microsoft.WindowsMaps
+Microsoft.Xbox.TCUI
+Microsoft.XboxGameOverlay
+Microsoft.XboxGamingOverlay
+Microsoft.XboxIdentityProvider
+Microsoft.XboxSpeechToTextOverlay
+Microsoft.YourPhone
+Microsoft.ZuneMusic
+Microsoft.ZuneVideo
+MicrosoftCorporationII.MicrosoftFamily
+MicrosoftWindows.Client.WebExperience
+MicrosoftTeams
+
+## Small inbox tools - remove only if you really do not need them
+; Microsoft.MicrosoftStickyNotes
+; Microsoft.Paint
+; Microsoft.ScreenSketch
+; Microsoft.Windows.Photos
+; Microsoft.WindowsAlarms
+; Microsoft.WindowsCalculator
+; Microsoft.WindowsCamera
+; Microsoft.WindowsSoundRecorder
+; Microsoft.WindowsTerminal
+; Microsoft.WindowsNotepad
+; MicrosoftCorporationII.QuickAssist
+
+## Media codecs - removing them breaks playback of these formats
+; Microsoft.HEIFImageExtension
+; Microsoft.HEVCVideoExtension
+; Microsoft.RawImageExtension
+; Microsoft.VP9VideoExtensions
+; Microsoft.WebMediaExtensions
+; Microsoft.WebpImageExtension
+
+## Do NOT remove - Store, winget and security UI
+; Microsoft.DesktopAppInstaller
+; Microsoft.SecHealthUI
+; Microsoft.StorePurchaseApp
+; Microsoft.WindowsStore

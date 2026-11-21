@@ -1,0 +1,22 @@
+# Working folders created by the toolkit
+/DVD/
+/ISO/
+/Mount/
+/Temp/
+/Logs/
+
+# Local options
+/Config/Settings.user.json
+
+# User content (keep the README files only)
+/Custom/**
+!/Custom/README.md
+/Drivers/**
+!/Drivers/README.md
+/Updates/**
+!/Updates/README.md
+/Packs/**
+!/Packs/README.md
+
+# Pester output
+/testResults.xml
