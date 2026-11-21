@@ -403,9 +403,11 @@ function Copy-TkRecoveryImage {
     $folder = Join-Path $ImagePath 'Windows\System32\Recovery'
     $null = New-Item -Path $folder -ItemType Directory -Force
     $target = Join-Path $folder 'winre.wim'
-    if (Test-Path -LiteralPath $target) { (Get-Item -LiteralPath $target -Force).Attributes = 'Normal' }
-    Copy-Item -LiteralPath $Source -Destination $target -Force
-    (Get-Item -LiteralPath $target -Force).Attributes = 'Hidden, System, Archive'
+    # Delete instead of overwriting: the existing file is backed by the mounted WIM and may not be
+    # accessible for writing when several indexes of the same WIM are mounted.
+    if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Force }
+    [System.IO.File]::Copy($Source, $target, $true)
+    [System.IO.File]::SetAttributes($target, [System.IO.FileAttributes]'Hidden, System, Archive')
 }
 
 function Add-TkPostSetupInstaller {

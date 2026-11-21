@@ -223,6 +223,7 @@ function Select-TkSource {
     $session.Images = @()
     Save-TkSession
 
+    $winReStaged = $false
     try {
         foreach ($info in $infos) {
             $mountPath = Join-Path $p.MountInstall $info.Index
@@ -231,6 +232,12 @@ function Select-TkSource {
             Mount-WindowsImage -ImagePath $installWim -Index $info.Index -Path $mountPath @dp | Out-Null
             $session.Images += @{ Kind = 'Install'; Index = $info.Index; Path = $mountPath; ImageFile = $installWim; Name = $info.Name }
             Save-TkSession
+            # Copy winre.wim while only ONE image is mounted: once further indexes of the same WIM
+            # are mounted, WIM-backed files of the first mount can fail with "cannot access the file" (1920).
+            if ($session.ServiceWinRE -and -not $winReStaged) {
+                $winReStaged = Copy-TkStagedRecoveryImage -ImagePath $mountPath
+                if (-not $winReStaged) { $session.ServiceWinRE = $false; Save-TkSession }
+            }
         }
 
         if ($session.ServiceBoot) {
@@ -247,24 +254,13 @@ function Select-TkSource {
             Write-TkLog 'boot.wim not found - the boot image will not be serviced.' -Level Warn
         }
 
-        if ($session.ServiceWinRE) {
-            $firstInstall = @(Get-TkImage -Kind Install)[0]
-            $sourceRe = Join-Path $firstInstall.Path 'Windows\System32\Recovery\winre.wim'
-            if (Test-Path -LiteralPath $sourceRe) {
-                $stage = Join-Path $p.WinReStage 'winre.wim'
-                $null = New-Item -Path $p.WinReStage -ItemType Directory -Force
-                Copy-Item -LiteralPath $sourceRe -Destination $stage -Force
-                (Get-Item -LiteralPath $stage -Force).Attributes = 'Normal'
-                $null = New-Item -Path $p.MountWinRE -ItemType Directory -Force
-                Write-TkLog 'Mounting recovery image (winre.wim)...' -Level Step
-                Mount-WindowsImage -ImagePath $stage -Index 1 -Path $p.MountWinRE @dp | Out-Null
-                $session.Images += @{ Kind = 'WinRE'; Index = 1; Path = $p.MountWinRE; ImageFile = $stage; Name = 'Windows Recovery Environment' }
-                Save-TkSession
-            }
-            else {
-                $session.ServiceWinRE = $false
-                Write-TkLog 'The install image contains no winre.wim - the recovery image will not be serviced.' -Level Warn
-            }
+        if ($session.ServiceWinRE -and $winReStaged) {
+            $stage = Join-Path $p.WinReStage 'winre.wim'
+            $null = New-Item -Path $p.MountWinRE -ItemType Directory -Force
+            Write-TkLog 'Mounting recovery image (winre.wim)...' -Level Step
+            Mount-WindowsImage -ImagePath $stage -Index 1 -Path $p.MountWinRE @dp | Out-Null
+            $session.Images += @{ Kind = 'WinRE'; Index = 1; Path = $p.MountWinRE; ImageFile = $stage; Name = 'Windows Recovery Environment' }
+            Save-TkSession
         }
     }
     catch {
@@ -277,4 +273,39 @@ function Select-TkSource {
     Save-TkSession
     $i = $session.ImageInfo
     Write-TkLog ("Source selected: Windows 11 {0} ({1}) {2} {3}, index {4}" -f $i.Release, $i.Version, $i.Architecture, $i.DefaultLanguage, ($session.Indexes -join ',')) -Level Success
+}
+
+function Copy-TkStagedRecoveryImage {
+    <#
+    .SYNOPSIS
+        Copies winre.wim out of a mounted install image to Temp\WinRE for servicing.
+    .OUTPUTS
+        $true when the recovery image was staged, otherwise $false (servicing continues without WinRE).
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][string]$ImagePath)
+    $p = $script:TK.Paths
+    $source = Join-Path $ImagePath 'Windows\System32\Recovery\winre.wim'
+    if (-not (Test-Path -LiteralPath $source)) {
+        Write-TkLog 'The install image contains no winre.wim - the recovery image will not be serviced.' -Level Warn
+        return $false
+    }
+    $stage = Join-Path $p.WinReStage 'winre.wim'
+    $null = New-Item -Path $p.WinReStage -ItemType Directory -Force
+    if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Force }
+    Write-TkLog 'Copying recovery image (winre.wim) out of the install image...' -Level Step
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            [System.IO.File]::Copy($source, $stage, $true)
+            (Get-Item -LiteralPath $stage -Force).Attributes = 'Normal'
+            return $true
+        }
+        catch {
+            $message = $_.Exception.GetBaseException().Message
+            if ($attempt -lt 3) { Start-Sleep -Seconds 2 }
+        }
+    }
+    Write-TkLog "Could not copy winre.wim ($message) - continuing without servicing the recovery image." -Level Warn
+    $false
 }
