@@ -1,0 +1,35 @@
+; Windows 11 capabilities (Features on Demand) - template for RemoveCapabilitiesList.txt
+; Entries are matched as prefix: "App.StepsRecorder" matches "App.StepsRecorder~~~~0.0.1.0".
+; Show the capabilities of your image: Remove -> "Remove capabilities (select)" or Get-TkCapability.
+; Lines starting with ';' are NOT removed - remove the ';' to include them.
+
+## Legacy / rarely used
+App.StepsRecorder
+Browser.InternetExplorer
+MathRecognizer
+Microsoft.Windows.WordPad
+Microsoft.Windows.PowerShell.ISE
+XPS.Viewer
+Print.Fax.Scan
+Microsoft.Wallpapers.Extended
+Hello.Face
+App.Support.QuickAssist
+Media.WindowsMediaPlayer
+OneCoreUAP.OneSync
+VBSCRIPT
+
+## Keep unless you know what you are doing
+; Microsoft.Windows.Notepad.System
+; Microsoft.Windows.MSPaint
+; Microsoft.Windows.SnippingTool
+; OpenSSH.Client
+; Print.Management.Console
+; DirectX.Configuration.Database
+; Language.Handwriting
+; Language.OCR
+; Language.Speech
+; Language.TextToSpeech
+
+## Network adapter drivers (needed on real hardware!)
+; Microsoft.Windows.Ethernet.Client
+; Microsoft.Windows.Wifi.Client

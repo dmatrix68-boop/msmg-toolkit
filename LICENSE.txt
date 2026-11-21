@@ -1,0 +1,48 @@
+MSMG Toolkit PS7 - altered version notice
+==========================================
+
+This software is an ALTERED VERSION of the MSMG Toolkit. It is an unofficial,
+independent rewrite in PowerShell 7 that supports Windows 11 only. It is not the
+original software and it is not affiliated with or endorsed by MSMG.
+
+Changes compared to MSMG Toolkit 13.7 (see CHANGELOG.md for details):
+  - The batch script (Toolkit.cmd) was replaced by a newly written PowerShell 7 module.
+  - Support for Windows 7, 8.1, 10 and Windows Server up to 2022 was removed.
+  - All bundled third-party binaries (DISM copies, NSudo, 7-Zip, wimlib, ToolkitHelper,
+    ResourceHacker, dvdburn, esddecrypt, PSFExtractor) were removed; the toolkit uses the
+    tools of the Windows 11 host instead.
+
+The original copyright notice and permission notice follow and apply to this
+altered version as well.
+
+-------------------------------------------------------------------------------
+
+MSMG Toolkit License
+
+Copyright (c) 2013-2024 MSMG. All rights reserved.
+https://msmgtoolkit.in
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to the 
+following conditions: 
+
+1. The origin of this Software must not be misrepresented, you must not claim
+that you wrote the original Software. If you use this Software in a product, an
+acknowledgment in the product documentation would be appreciated.
+
+2. Altered source versions must be plainly marked as such, and must not be 
+misrepresented as being the original Software.
+
+3. The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

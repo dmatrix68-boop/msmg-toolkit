@@ -1,0 +1,2 @@
+; EnableFeaturesList - one entry per line, lines starting with ; or # are comments.
+; Load a template via Remove -> "Load a list template" or copy one from Lists\Templates.

@@ -1,0 +1,71 @@
+; Provisioned apps of Windows 11 24H2 / 25H2 (build 26100 / 26200) - template for RemoveAppsList.txt
+; Matched against the app DisplayName (wildcards allowed). Not every app exists in every edition.
+; Lines starting with ';' are NOT removed - remove the ';' to include them.
+
+## Entertainment / consumer apps
+Clipchamp.Clipchamp
+Microsoft.BingNews
+Microsoft.BingSearch
+Microsoft.BingWeather
+Microsoft.GamingApp
+Microsoft.MicrosoftSolitaireCollection
+Microsoft.ZuneMusic
+Microsoft.Xbox.TCUI
+Microsoft.XboxGamingOverlay
+Microsoft.XboxIdentityProvider
+Microsoft.XboxSpeechToTextOverlay
+MicrosoftCorporationII.MicrosoftFamily
+
+## Productivity / cloud
+Microsoft.Copilot
+Microsoft.MicrosoftOfficeHub
+Microsoft.OutlookForWindows
+Microsoft.PowerAutomateDesktop
+Microsoft.Todos
+Microsoft.Windows.DevHome
+MicrosoftTeams
+MSTeams
+
+## Help / feedback
+Microsoft.GetHelp
+Microsoft.Getstarted
+Microsoft.WindowsFeedbackHub
+
+## Phone / cross device
+Microsoft.YourPhone
+MicrosoftWindows.CrossDevice
+
+## Widgets (Windows Web Experience Pack)
+MicrosoftWindows.Client.WebExperience
+
+## Small inbox tools - remove only if you really do not need them
+; Microsoft.MicrosoftStickyNotes
+; Microsoft.Paint
+; Microsoft.ScreenSketch
+; Microsoft.Windows.Photos
+; Microsoft.WindowsAlarms
+; Microsoft.WindowsCalculator
+; Microsoft.WindowsCamera
+; Microsoft.WindowsSoundRecorder
+; Microsoft.WindowsTerminal
+; Microsoft.WindowsNotepad
+; MicrosoftCorporationII.QuickAssist
+
+## Media codecs - removing them breaks playback of these formats
+; Microsoft.AV1VideoExtension
+; Microsoft.AVCEncoderVideoExtension
+; Microsoft.HEIFImageExtension
+; Microsoft.HEVCVideoExtension
+; Microsoft.MPEG2VideoExtension
+; Microsoft.RawImageExtension
+; Microsoft.VP9VideoExtensions
+; Microsoft.WebMediaExtensions
+; Microsoft.WebpImageExtension
+
+## Do NOT remove - Store, winget, security UI and frameworks
+; Microsoft.DesktopAppInstaller
+; Microsoft.SecHealthUI
+; Microsoft.StorePurchaseApp
+; Microsoft.WindowsStore
+; Microsoft.ApplicationCompatibilityEnhancements
+; Microsoft.MicrosoftEdge.Stable
