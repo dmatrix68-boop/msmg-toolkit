@@ -264,7 +264,9 @@ Describe 'SetupComplete.cmd generator' {
 
 Describe 'Unattend generator' {
     BeforeAll {
-        $password = ConvertTo-SecureString -String 'Secret1' -AsPlainText -Force
+        # Test fixture: build the SecureString char by char (no plain text conversion cmdlet)
+        $password = [securestring]::new()
+        foreach ($char in 'Secret1'.ToCharArray()) { $password.AppendChar($char) }
         $xmlText = InModuleScope MSMGToolkit -Parameters @{ Password = $password } {
             New-TkUnattendXml -Architecture arm64 -UILanguage 'de-DE' -SystemLocale 'de-DE' -UserLocale 'de-DE' `
                 -InputLocale '0407:00000407' -TimeZone 'W. Europe Standard Time' -Organization 'A&B <Corp>' `
@@ -378,7 +380,7 @@ Describe 'Settings' {
         $config = Join-Path $TestDrive 'Config'
         $null = New-Item -Path $config -ItemType Directory -Force
         '{ "Logging": false, "UnknownKey": 1, "SwmChunkSizeMB": 2000 }' | Set-Content -LiteralPath (Join-Path $config 'Settings.user.json')
-        $settings = InModuleScope MSMGToolkit -Parameters @{ C = $config } { Get-TkSettings -ConfigPath $C }
+        $settings = InModuleScope MSMGToolkit -Parameters @{ C = $config } { Get-TkSetting -ConfigPath $C }
         $settings.Logging | Should -BeFalse
         $settings.SwmChunkSizeMB | Should -Be 2000
         $settings.Contains('UnknownKey') | Should -BeFalse

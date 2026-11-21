@@ -33,7 +33,7 @@ function Initialize-TkContext {
 
     $script:TK = @{
         Paths       = $paths
-        Settings    = Get-TkSettings -ConfigPath $paths.Config
+        Settings    = Get-TkSetting -ConfigPath $paths.Config
         Session     = New-TkSession
         LoadedHives = [System.Collections.Generic.List[string]]::new()
         LogFile     = $null
@@ -72,7 +72,7 @@ function Initialize-TkFolder {
 # Settings
 # ---------------------------------------------------------------------------------------------
 
-function Get-TkDefaultSettings {
+function Get-TkDefaultSetting {
     [CmdletBinding()]
     param()
     [ordered]@{
@@ -91,12 +91,12 @@ function Get-TkDefaultSettings {
     }
 }
 
-function Get-TkSettings {
+function Get-TkSetting {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ConfigPath
     )
-    $settings = Get-TkDefaultSettings
+    $settings = Get-TkDefaultSetting
     $userFile = Join-Path $ConfigPath 'Settings.user.json'
     if (Test-Path -LiteralPath $userFile) {
         try {
@@ -112,7 +112,7 @@ function Get-TkSettings {
     $settings
 }
 
-function Save-TkSettings {
+function Save-TkSetting {
     [CmdletBinding()]
     param()
     $file = Join-Path $script:TK.Paths.Config 'Settings.user.json'

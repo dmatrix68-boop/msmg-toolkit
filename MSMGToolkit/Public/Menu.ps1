@@ -535,7 +535,7 @@ function Show-TkOptionsMenu {
             @{ Key = '10'; Label = "oscdimg.exe path                     : $(if ($s.OscdimgPath) { $s.OscdimgPath } else { '(auto-detect)' })"; Action = { $s.OscdimgPath = (Read-TkInput -Prompt 'Path (empty = auto-detect)').Trim('"') }; NoPause = $true }
             @{ Key = '11'; Label = "USB partition style                  : $($s.UsbPartitionStyle)"; Action = { & $cycle 'UsbPartitionStyle' @('MBR', 'GPT') }; NoPause = $true }
             @{ Key = '12'; Label = "SWM part size (MB)                   : $($s.SwmChunkSizeMB)"; Action = { $s.SwmChunkSizeMB = [int](Read-TkInput -Prompt 'Size in MB' -Default "$($s.SwmChunkSizeMB)") }; NoPause = $true }
-            @{ Key = 'S'; Label = 'Save options'; Action = { Save-TkSettings } }
+            @{ Key = 'S'; Label = 'Save options'; Action = { Save-TkSetting } }
         )
     }
 }
