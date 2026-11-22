@@ -165,6 +165,15 @@ function Export-TkWimImage {
         }
         else { @([int]$SourceIndex) }
         foreach ($i in $indexes) {
+            if ($Compression -eq 'recovery') {
+                # Export-WindowsImage does not support ESD ("recovery") compression - dism.exe does
+                $dismArgs = @('/Export-Image', "/SourceImageFile:$SourceImagePath", "/SourceIndex:$i",
+                    "/DestinationImageFile:$DestinationImagePath", '/Compress:recovery', '/CheckIntegrity')
+                if ($DestinationName) { $dismArgs += "/DestinationName:$DestinationName" }
+                if ($Bootable) { $dismArgs += '/Bootable' }
+                $null = Invoke-TkDismExe -ArgumentList $dismArgs -Quiet
+                continue
+            }
             $params = @{
                 SourceImagePath      = $SourceImagePath
                 SourceIndex          = $i
