@@ -95,11 +95,16 @@ function Import-TkSourceFromEsd {
 
     if ($isMediaEsd) {
         Write-TkLog 'Media ESD detected: extracting setup media files (index 1)...' -Level Step
-        Expand-WindowsImage -ImagePath $ImagePath -Index 1 -ApplyPath $dvd @dp | Out-Null
+        Invoke-TkWimEngine -Operation 'Extracting setup media' -WimlibAction {
+            Invoke-TkWimlib -ArgumentList @('apply', $ImagePath, '1', $dvd)
+        } -DismAction {
+            Expand-WindowsImage -ImagePath $ImagePath -Index 1 -ApplyPath $dvd @dp | Out-Null
+        }
         $bootWim = Join-Path $sources 'boot.wim'
+        Remove-Item -LiteralPath $bootWim -Force -ErrorAction SilentlyContinue
         Write-TkLog 'Creating boot.wim (WinPE + Windows Setup)...' -Level Step
-        Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex 2 -DestinationImagePath $bootWim -CompressionType max @dp | Out-Null
-        Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex 3 -DestinationImagePath $bootWim -CompressionType max -Setbootable @dp | Out-Null
+        Export-TkWimImage -SourceImagePath $ImagePath -SourceIndex 2 -DestinationImagePath $bootWim -Compression max
+        Export-TkWimImage -SourceImagePath $ImagePath -SourceIndex 3 -DestinationImagePath $bootWim -Compression max -Bootable
         $editions = @($images | Where-Object { $_.ImageIndex -ge 4 })
     }
     else {
@@ -114,8 +119,8 @@ function Import-TkSourceFromEsd {
     $installWim = Join-Path $sources 'install.wim'
     foreach ($edition in $editions) {
         Write-TkLog "Exporting index $($edition.ImageIndex): $($edition.ImageName)..." -Level Step
-        Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex $edition.ImageIndex -DestinationImagePath $installWim `
-            -CompressionType $script:TK.Settings.ExportCompression @dp | Out-Null
+        Export-TkWimImage -SourceImagePath $ImagePath -SourceIndex $edition.ImageIndex -DestinationImagePath $installWim `
+            -Compression $script:TK.Settings.ExportCompression
     }
     Write-TkLog "Created '$installWim' with $($editions.Count) edition(s)." -Level Success
 }
@@ -125,17 +130,13 @@ function Convert-TkInstallEsd {
     [CmdletBinding()]
     param()
     Initialize-TkDism
-    $dp = Get-TkDismParameter
     $sources = Join-Path $script:TK.Paths.DVD 'sources'
     $esd = Join-Path $sources 'install.esd'
     $wim = Join-Path $sources 'install.wim'
     if (-not (Test-Path -LiteralPath $esd)) { throw "No install.esd found in '$sources'." }
     Set-TkFileWritable -Path $esd
-    foreach ($image in @(Get-WindowsImage -ImagePath $esd @dp)) {
-        Write-TkLog "Converting index $($image.ImageIndex): $($image.ImageName)..." -Level Step
-        Export-WindowsImage -SourceImagePath $esd -SourceIndex $image.ImageIndex -DestinationImagePath $wim `
-            -CompressionType $script:TK.Settings.ExportCompression @dp | Out-Null
-    }
+    Write-TkLog 'Converting all indexes of install.esd to install.wim...' -Level Step
+    Export-TkWimImage -SourceImagePath $esd -SourceIndex 'all' -DestinationImagePath $wim -Compression $script:TK.Settings.ExportCompression
     Remove-Item -LiteralPath $esd -Force
     Write-TkLog 'install.esd converted to install.wim.' -Level Success
 }
@@ -224,6 +225,18 @@ function Select-TkSource {
     Save-TkSession
 
     $winReStaged = $false
+    if ($session.ServiceWinRE) {
+        # Extract winre.wim directly from install.wim before any image is mounted read/write
+        try {
+            Write-TkLog 'Extracting recovery image (winre.wim) from install.wim...' -Level Step
+            $null = Export-TkFileFromWim -ImagePath $installWim -Index $infos[0].Index `
+                -FilePath 'Windows\System32\Recovery\winre.wim' -DestinationFolder $p.WinReStage
+            $winReStaged = $true
+        }
+        catch {
+            Write-TkLog "Extracting winre.wim failed ($($_.Exception.Message)) - it will be copied from the mounted image." -Level Warn
+        }
+    }
     try {
         foreach ($info in $infos) {
             $mountPath = Join-Path $p.MountInstall $info.Index

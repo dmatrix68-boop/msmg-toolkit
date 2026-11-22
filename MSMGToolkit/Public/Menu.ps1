@@ -535,6 +535,8 @@ function Show-TkOptionsMenu {
             @{ Key = '10'; Label = "oscdimg.exe path                     : $(if ($s.OscdimgPath) { $s.OscdimgPath } else { '(auto-detect)' })"; Action = { $s.OscdimgPath = (Read-TkInput -Prompt 'Path (empty = auto-detect)').Trim('"') }; NoPause = $true }
             @{ Key = '11'; Label = "USB partition style                  : $($s.UsbPartitionStyle)"; Action = { & $cycle 'UsbPartitionStyle' @('MBR', 'GPT') }; NoPause = $true }
             @{ Key = '12'; Label = "SWM part size (MB)                   : $($s.SwmChunkSizeMB)"; Action = { $s.SwmChunkSizeMB = [int](Read-TkInput -Prompt 'Size in MB' -Default "$($s.SwmChunkSizeMB)") }; NoPause = $true }
+            @{ Key = '13'; Label = "WIM engine (file operations)         : $($s.WimEngine)$(if ($s.WimEngine -eq 'wimlib' -and -not (Get-TkWimlibPath)) { ' (not found - DISM is used)' })"; Action = { & $cycle 'WimEngine' @('wimlib', 'dism') }; NoPause = $true }
+            @{ Key = '14'; Label = "wimlib-imagex.exe path               : $(if ($s.WimlibPath) { $s.WimlibPath } else { '(Bin\<arch>)' })"; Action = { $s.WimlibPath = (Read-TkInput -Prompt 'Path (empty = Bin\<arch>\wimlib-imagex.exe)').Trim('"') }; NoPause = $true }
             @{ Key = 'S'; Label = 'Save options'; Action = { Save-TkSetting } }
         )
     }

@@ -10,6 +10,7 @@ function Initialize-TkContext {
 
     $paths = [ordered]@{
         Root         = $Root
+        Bin          = Join-Path $Root 'Bin'
         Config       = Join-Path $Root 'Config'
         Custom       = Join-Path $Root 'Custom'
         Drivers      = Join-Path $Root 'Drivers'
@@ -88,6 +89,8 @@ function Get-TkDefaultSetting {
         OscdimgPath          = ''             # Empty = auto-detect Windows ADK oscdimg.exe
         UsbPartitionStyle    = 'MBR'          # MBR (BIOS + UEFI) | GPT (UEFI only)
         SwmChunkSizeMB       = 3800           # Split size for install.wim on FAT32 media
+        WimEngine            = 'wimlib'       # wimlib (default, DISM as fallback) | dism - for operations on WIM files
+        WimlibPath           = ''             # Empty = Bin\<arch>\wimlib-imagex.exe
     }
 }
 

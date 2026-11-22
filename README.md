@@ -10,8 +10,9 @@ Nicht mit MSMG oder Microsoft verbunden.
 Das Toolkit passt Windows-11-Installationsmedien an: Treiber, Updates, Sprachpakete und Features
 integrieren, Apps und Komponenten entfernen, Tweaks setzen, eine Antwortdatei erzeugen und das
 Ergebnis als ISO oder bootfähigen USB-Stick ausgeben. Die Funktionalität des alten Batch-Toolkits
-(27.700 Zeilen `Toolkit.cmd` + Drittanbieter-Binaries) wurde als PowerShell-7-Modul neu aufgebaut,
-das ausschließlich die DISM-Bordmittel von Windows 11 verwendet.
+(27.700 Zeilen `Toolkit.cmd` + Drittanbieter-Binaries) wurde als PowerShell-7-Modul neu aufgebaut.
+Die Wartung der Images läuft über die DISM-Bordmittel von Windows 11, Operationen auf WIM-Dateien
+standardmäßig über das mitgelieferte **wimlib** (mit automatischem Rückfall auf DISM).
 
 ## Inhalt
 
@@ -20,6 +21,7 @@ das ausschließlich die DISM-Bordmittel von Windows 11 verwendet.
 - [Schnellstart](#schnellstart)
 - [Ordnerstruktur](#ordnerstruktur)
 - [Empfohlener Ablauf](#empfohlener-ablauf)
+- [WIM-Engine: wimlib mit DISM-Fallback](#wim-engine-wimlib-mit-dism-fallback)
 - [Automatisierung: Build-Profile und Modul](#automatisierung-build-profile-und-modul)
 - [Tweaks](#tweaks)
 - [Bekannte Einschränkungen](#bekannte-einschränkungen)
@@ -33,7 +35,7 @@ das ausschließlich die DISM-Bordmittel von Windows 11 verwendet.
 | Sprache | Batch (`Toolkit.cmd`) | PowerShell-7-Modul `MSMGToolkit` |
 | Quell-Images | Windows 7, 8.1, 10, 11, Server 2008 R2 – 2022 | **nur Windows 11** (Build ≥ 22000, x64/arm64) |
 | Host-System | Windows 7 – 11 | **Windows 11** |
-| Werkzeuge | mitgelieferte DISM-Kopien, NSudo, 7-Zip, wimlib, ToolkitHelper, ResourceHacker, dvdburn, esddecrypt | DISM-Cmdlets des Hosts, `oscdimg.exe` aus dem Windows ADK (optional, sonst IMAPI2) |
+| Werkzeuge | mitgelieferte DISM-Kopien, NSudo, 7-Zip, wimlib, ToolkitHelper, ResourceHacker, dvdburn, esddecrypt | DISM-Cmdlets des Hosts, wimlib 1.14.5 für WIM-Dateien (Fallback DISM), `oscdimg.exe` aus dem Windows ADK (optional, sonst IMAPI2) |
 | Rechte | Start als TrustedInstaller (NSudo) | Administrator; geschützte Registry-Schlüssel über SeBackup/SeRestore-Privilegien, ohne ACL-Änderung |
 | Tweaks | fest im Skript | datengetrieben in `Config\Tweaks.psd1`, erweiterbar |
 | Automatisierung | – | Build-Profile (`Start.ps1 -Build profil.psd1`) und exportierte Cmdlets |
@@ -78,6 +80,7 @@ Das ursprüngliche Archiv `Toolkit_v13.7.7z` ist in der Git-Historie (Commit `a7
 | Ordner | Inhalt |
 |---|---|
 | `MSMGToolkit` | PowerShell-Modul (`Private` = interne Helfer, `Public` = Funktionsbereiche) |
+| `Bin` | `x64\wimlib-imagex.exe` + `libwim-15.dll` (wimlib 1.14.5), Lizenzhinweis in `Bin\LICENSES` |
 | `Config` | `Tweaks.psd1` (Tweak-Katalog), `BuildProfile.example.psd1`, `WimScript.ini`, `Settings.user.json` (Optionen) |
 | `Lists` | Arbeitslisten für Entfernen/Features; `Lists\Templates` enthält Vorlagen für 22H2/23H2 und 24H2/25H2 |
 | `XMLs` | Standard-App-Zuordnungen, Start-/Taskleisten-Layouts |
@@ -107,6 +110,25 @@ Hinweise:
 - Windows 11 24H2+ nutzt Checkpoint-Updates: Checkpoint-CU und aktuelles CU gemeinsam in `Updates\Install` legen – sie werden in KB-Reihenfolge integriert.
 - USB-Sticks werden als FAT32 formatiert (MBR = BIOS + UEFI, GPT = nur UEFI); eine `install.wim` > 4 GB wird automatisch in `install.swm`-Teile gesplittet.
 - Die erzeugte Antwortdatei automatisiert bewusst **keine** Datenträgerpartitionierung – Setup fragt weiterhin nach dem Ziel.
+
+## WIM-Engine: wimlib mit DISM-Fallback
+
+Alle Operationen auf **WIM-/ESD-Dateien** laufen standardmäßig über [wimlib](https://wimlib.net/) (`Bin\x64\wimlib-imagex.exe`),
+das dafür meist deutlich schneller ist als DISM:
+
+| Operation | wimlib | DISM-Fallback |
+|---|---|---|
+| ESD → WIM, Media-Creation-Tool-ESD importieren, Export, WIM ↔ ESD | `export` / `apply` | `Export-WindowsImage` / `Expand-WindowsImage` |
+| WIM nach dem Speichern neu aufbauen (Platz freigeben) | `optimize` (ohne Neukomprimierung) | Export aller Indizes in neue Datei |
+| Index umbenennen | `info` (direkt in der Datei) | Export aller Indizes |
+| Index löschen, Split/Join (SWM), Capture, Apply | `delete`, `split`, `join`, `capture`/`append`, `apply` | entsprechende DISM-Cmdlets |
+| `winre.wim` vor dem Mounten aus `install.wim` holen | `extract` | schreibgeschützt mounten + kopieren |
+
+DISM wird automatisch verwendet, wenn wimlib in den Optionen abgeschaltet ist (**Tools → Options → WIM engine**),
+`wimlib-imagex.exe` fehlt oder eine wimlib-Operation fehlschlägt (Meldung im Log, halb geschriebene Dateien werden vorher entfernt).
+Das **Mounten und Warten** der Images (Pakete, Treiber, Features, Apps, Registry) läuft immer über DISM – wimlib kann
+unter Windows keine Images zum Servicing mounten. Auf arm64-Hosts läuft die x64-Version über die Emulation von Windows 11;
+ein anderer Pfad kann unter **Options → wimlib-imagex.exe path** gesetzt werden.
 
 ## Automatisierung: Build-Profile und Modul
 
@@ -177,6 +199,7 @@ Tweaks sind in `Config\Tweaks.psd1` definiert (Registry-Operationen auf SOFTWARE
 
 - Die tiefgehende Komponentenentfernung des Originals (`ToolkitHelper.exe`, Closed Source) ist nicht enthalten. Entfernt wird über DISM;
   versteckte Pakete können per **Un-hide** sichtbar gemacht werden. Das ist mächtig, aber riskant – Images vor dem Rollout testen.
+- wimlib exportiert keine zwei Images mit gleichem Namen in dieselbe Datei; in diesem Fall übernimmt automatisch DISM.
 - `BypassNRO` wird von neueren Windows-11-Builds teilweise ignoriert; zuverlässig ist ein lokales Konto in der Antwortdatei.
 - `DisableDefender` ist durch Tamper Protection auf aktuellen Builds nur eingeschränkt wirksam.
 - Der IMAPI2-Fallback für ISOs ist eine Notlösung; für produktive Medien das Windows ADK (`oscdimg.exe`) installieren.
@@ -192,10 +215,13 @@ Invoke-Pester -Path .\tests -Output Detailed
 Invoke-ScriptAnalyzer -Path . -Recurse -Settings .\PSScriptAnalyzerSettings.psd1
 ```
 
-GitHub Actions führt beides bei jedem Push auf einem Windows-Runner aus (`.github/workflows/ci.yml`).
+GitHub Actions führt beides bei jedem Push auf einem Windows-Runner aus (`.github/workflows/ci.yml`). Die Integrationstests in
+`tests\WimOperations.Integration.Tests.ps1` erzeugen kleine Test-WIMs und prüfen alle WIM-Operationen mit wimlib **und** DISM
+(benötigen Administratorrechte, sonst werden sie übersprungen).
 
 ## Lizenz
 
 Veränderte Version des MSMG Toolkit – Copyright (c) 2013-2024 MSMG. Es gelten die Bedingungen in [LICENSE.txt](LICENSE.txt).
+Das mitgelieferte wimlib steht unter eigener Lizenz (wimlib-imagex: GPLv3+), siehe [Bin/LICENSES/wimlib.txt](Bin/LICENSES/wimlib.txt).
 Dieses Projekt ist eine inoffizielle Neuentwicklung und steht in keiner Verbindung zu MSMG oder Microsoft.
 Windows ist eine eingetragene Marke der Microsoft Corporation. Nutzung auf eigene Gefahr.

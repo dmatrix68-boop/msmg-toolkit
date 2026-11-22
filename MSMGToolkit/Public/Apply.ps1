@@ -28,26 +28,35 @@ function Invoke-TkImageCleanup {
 function Optimize-TkWim {
     <#
     .SYNOPSIS
-        Rebuilds a WIM file by exporting all indexes into a new file (reclaims unused space).
+        Rebuilds a WIM file and reclaims unused space (wimlib "optimize"; DISM fallback: export
+        all indexes into a new file).
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ImagePath,
         [ValidateSet('none', 'fast', 'max')][string]$Compression = $script:TK.Settings.ExportCompression
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
     if (-not (Test-Path -LiteralPath $ImagePath)) { throw "Image not found: $ImagePath" }
-    $temp = "$ImagePath.rebuild"
-    Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
     $before = (Get-Item -LiteralPath $ImagePath).Length
-    foreach ($image in @(Get-WindowsImage -ImagePath $ImagePath @dp)) {
-        Write-TkLog "Exporting index $($image.ImageIndex): $($image.ImageName)..." -Level Step
-        $bootable = (Split-Path -Leaf $ImagePath) -ieq 'boot.wim' -and $image.ImageIndex -eq 2
-        Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex $image.ImageIndex -DestinationImagePath $temp `
-            -CompressionType $Compression -Setbootable:$bootable @dp | Out-Null
+    $temp = "$ImagePath.rebuild"
+    # wimlib only recompresses when a compression was requested explicitly - a plain rebuild
+    # copies the compressed data and is much faster.
+    $recompress = $PSBoundParameters.ContainsKey('Compression')
+    Invoke-TkWimEngine -Operation "Rebuild of $(Split-Path -Leaf $ImagePath)" -WimlibAction {
+        $wimArgs = @('optimize', $ImagePath, '--check')
+        if ($recompress) { $wimArgs += ConvertTo-TkWimlibCompression -Compression $Compression }
+        Invoke-TkWimlib -ArgumentList $wimArgs
+    } -DismAction {
+        $dp = Get-TkDismParameter
+        Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+        foreach ($image in @(Get-WindowsImage -ImagePath $ImagePath @dp)) {
+            Write-TkLog "Exporting index $($image.ImageIndex): $($image.ImageName)..." -Level Step
+            $bootable = (Split-Path -Leaf $ImagePath) -ieq 'boot.wim' -and $image.ImageIndex -eq 2
+            Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex $image.ImageIndex -DestinationImagePath $temp `
+                -CompressionType $Compression -Setbootable:$bootable -CheckIntegrity @dp | Out-Null
+        }
+        Move-Item -LiteralPath $temp -Destination $ImagePath -Force
     }
-    Move-Item -LiteralPath $temp -Destination $ImagePath -Force
     $after = (Get-Item -LiteralPath $ImagePath).Length
     Write-TkLog ("{0}: {1:N0} MB -> {2:N0} MB" -f (Split-Path -Leaf $ImagePath), ($before / 1MB), ($after / 1MB)) -Level Success
 }

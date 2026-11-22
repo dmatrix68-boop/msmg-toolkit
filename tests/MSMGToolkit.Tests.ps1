@@ -34,10 +34,65 @@ Describe 'Repository' {
         foreach ($name in $manifest.FunctionsToExport) { $exported | Should -Contain $name }
     }
 
-    It 'ships no third-party binaries any more' {
+    It 'ships no third-party binaries except wimlib' {
+        $allowed = @('Bin/LICENSES/wimlib.txt', 'Bin/x64/libwim-15.dll', 'Bin/x64/wimlib-imagex.exe')
         $binaries = Get-ChildItem -Path $root -Recurse -File -Include '*.exe', '*.dll', '*.sys', '*.7z', '*.tpk' |
-            Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
-        $binaries | Should -BeNullOrEmpty
+            Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } |
+            ForEach-Object { [System.IO.Path]::GetRelativePath($root, $_.FullName) -replace '\\', '/' }
+        foreach ($binary in $binaries) { $allowed | Should -Contain $binary }
+        Test-Path -LiteralPath (Join-Path $root 'Bin/LICENSES/wimlib.txt') | Should -BeTrue
+    }
+}
+
+Describe 'wimlib helpers' {
+    It 'maps compression <Compression> to <Expected>' -ForEach @(
+        @{ Compression = 'max'; Expected = '--compress=LZX' }
+        @{ Compression = 'fast'; Expected = '--compress=XPRESS' }
+        @{ Compression = 'none'; Expected = '--compress=none' }
+        @{ Compression = 'recovery'; Expected = '--solid' }
+    ) {
+        InModuleScope MSMGToolkit -Parameters @{ C = $Compression } { ConvertTo-TkWimlibCompression -Compression $C } | Should -Be $Expected
+    }
+
+    It 'builds export arguments for a new destination' {
+        $wimArgs = @(InModuleScope MSMGToolkit {
+                Get-TkWimlibExportArgument -SourceImagePath 'a.esd' -SourceIndex 3 -DestinationImagePath 'boot.wim' -Compression max -Bootable
+            })
+        ($wimArgs -join ' ') | Should -Be 'export a.esd 3 boot.wim --compress=LZX --boot --check'
+    }
+
+    It 'keeps the compression of an existing destination' {
+        $wimArgs = @(InModuleScope MSMGToolkit {
+                Get-TkWimlibExportArgument -SourceImagePath 'a.wim' -SourceIndex 'all' -DestinationImagePath 'b.esd' -Compression recovery -DestinationName 'New' -DestinationExists
+            })
+        ($wimArgs -join ' ') | Should -Be 'export a.wim all b.esd New --check'
+    }
+
+    It 'uses DISM when the WIM engine is set to dism' {
+        InModuleScope MSMGToolkit {
+            $old = $script:TK.Settings.WimEngine
+            try {
+                $script:TK.Settings.WimEngine = 'dism'
+                Test-TkWimlibEnabled
+            }
+            finally { $script:TK.Settings.WimEngine = $old }
+        } | Should -BeFalse
+    }
+
+    It 'falls back to DISM when the wimlib action fails' {
+        $engine = InModuleScope MSMGToolkit {
+            Mock Test-TkWimlibEnabled { $true }
+            Mock Initialize-TkDism { }
+            Mock Write-TkLog { }
+            $script:fallbackRan = $false
+            Invoke-TkWimEngine -Operation 'Test' -WimlibAction { throw 'boom' } -DismAction { $script:fallbackRan = $true }
+            "$script:TkLastWimEngine/$script:fallbackRan"
+        }
+        $engine | Should -Be 'dism/True'
+    }
+
+    It 'defaults to wimlib' {
+        InModuleScope MSMGToolkit { (Get-TkDefaultSetting).WimEngine } | Should -Be 'wimlib'
     }
 }
 

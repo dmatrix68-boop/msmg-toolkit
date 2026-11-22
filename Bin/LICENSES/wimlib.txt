@@ -1,0 +1,18 @@
+wimlib 1.14.5 - bundled third-party software
+=============================================
+
+Files:   Bin\x64\wimlib-imagex.exe   SHA-256 34c0c4165591ad1f592837ed99d08273c58d6ed3fe0ed6360cf34e7b0739b353
+         Bin\x64\libwim-15.dll       SHA-256 ba853ee1e3fc5f5798581f02e8e066ba07a0a2375f0bf444fe981431fd508495
+Project: wimlib - https://wimlib.net/  (Copyright Eric Biggers and contributors)
+Source:  https://github.com/ebiggers/wimlib (tag v1.14.5) and https://wimlib.net/downloads/
+
+wimlib-imagex is free software licensed under the GNU General Public License,
+version 3 or later (GPLv3+): https://www.gnu.org/licenses/gpl-3.0.html
+The library (libwim) is distributed under the license terms stated in the
+COPYING file of the wimlib source distribution of the same version.
+
+There is NO WARRANTY, to the extent permitted by law.
+
+The complete corresponding source code of this exact version is available from
+the upstream locations above. MSMG Toolkit PS7 runs wimlib-imagex.exe as a
+separate program and does not link to or modify wimlib.
