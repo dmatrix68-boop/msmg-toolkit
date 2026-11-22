@@ -40,10 +40,13 @@ jobs:
           $config.TestResult.OutputPath = 'testResults.xml'
           Invoke-Pester -Configuration $config
 
-      - name: Smoke test (module import, DISM module, tweak catalog)
+      - name: Smoke test (module import, wimlib, DISM module, tweak catalog)
         shell: pwsh
         run: |
+          ./Bin/x64/wimlib-imagex.exe --version
+          if ($LASTEXITCODE -ne 0) { throw 'wimlib-imagex.exe does not start.' }
           Import-Module ./MSMGToolkit/MSMGToolkit.psd1 -Force
+          Get-TkDebugInfo | Format-Table -HideTableHeaders -Wrap
           (Get-Command -Module MSMGToolkit).Count
           Import-Module Dism -ErrorAction Stop
           Get-TkTweak -Build 26200 | Select-Object Id, Name | Format-Table -AutoSize

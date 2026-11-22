@@ -1,6 +1,6 @@
 @{
     RootModule           = 'MSMGToolkit.psm1'
-    ModuleVersion        = '1.0.0'
+    ModuleVersion        = '1.1.0'
     GUID                 = '1da4c30c-80c7-4719-b6d7-3930685fecab'
     Author               = 'MSMG Toolkit PS7 contributors'
     CompanyName          = 'Community'
@@ -32,7 +32,9 @@
         # Tools
         'Get-TkWimInfo', 'Remove-TkWimIndex', 'Rename-TkWimIndex', 'Export-TkWimIndex', 'Convert-TkWim', 'Split-TkWim', 'Join-TkSwm',
         'New-TkWimCapture', 'Expand-TkWim', 'Get-TkEditionTarget', 'Set-TkImageEdition', 'Mount-TkImageRegistry', 'Dismount-TkImageRegistry',
-        'Clear-TkMountPoint', 'Get-TkDebugInfo'
+        'Clear-TkMountPoint', 'Get-TkDebugInfo',
+        # wimlib
+        'Get-TkWimlibPath', 'Export-TkFileFromWim'
     )
     CmdletsToExport      = @()
     VariablesToExport    = @()

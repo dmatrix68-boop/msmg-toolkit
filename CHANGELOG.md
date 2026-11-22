@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 – wimlib as default WIM engine
+
+### Added
+- wimlib 1.14.5 (`Bin\x64\wimlib-imagex.exe`, `libwim-15.dll`) as default engine for all operations on WIM/ESD files:
+  ESD import/conversion, export, rebuild (`optimize`), rename, delete, split/join, capture, apply and file extraction.
+- Automatic DISM fallback when wimlib is disabled, missing or fails (half-written files are removed first).
+- Options "WIM engine" (wimlib | dism) and "wimlib-imagex.exe path"; wimlib version in the debug information.
+- `Export-TkFileFromWim` extracts single files without a read/write mount; `winre.wim` is now taken directly from
+  install.wim before any image is mounted.
+- Integration tests that run every WIM operation with wimlib and DISM on the CI Windows runner.
+
 ## 1.0.0 – PowerShell 7 rewrite (based on MSMG Toolkit 13.7)
 
 ### Removed

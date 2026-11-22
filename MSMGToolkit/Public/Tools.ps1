@@ -24,35 +24,40 @@ function Remove-TkWimIndex {
         [Parameter(Mandatory)][string]$ImagePath,
         [Parameter(Mandatory)][int[]]$Index
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
     # Delete from the highest index down so the remaining numbers stay valid
     foreach ($i in @($Index | Sort-Object -Descending)) {
-        $null = Invoke-TkStep -Name "Deleting index $i from $(Split-Path -Leaf $ImagePath)" -ScriptBlock {
+        Write-TkLog "Deleting index $i from $(Split-Path -Leaf $ImagePath)" -Level Step
+        Invoke-TkWimEngine -Operation "Deleting index $i" -WimlibAction {
+            Invoke-TkWimlib -ArgumentList @('delete', $ImagePath, "$i", '--check')
+        } -DismAction {
+            $dp = Get-TkDismParameter
             Remove-WindowsImage -ImagePath $ImagePath -Index $i -CheckIntegrity @dp | Out-Null
         }
     }
 }
 
 function Rename-TkWimIndex {
-    <# Renames an index (DISM has no rename - all indexes are exported into a new file). #>
+    <# Renames an index (wimlib changes the name in place; DISM has to re-export all indexes). #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ImagePath,
         [Parameter(Mandatory)][int]$Index,
         [Parameter(Mandatory)][string]$NewName
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
     $temp = "$ImagePath.rename"
-    Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
-    foreach ($image in @(Get-WindowsImage -ImagePath $ImagePath @dp)) {
-        $name = if ($image.ImageIndex -eq $Index) { $NewName } else { $image.ImageName }
-        Write-TkLog "Exporting index $($image.ImageIndex) as '$name'..." -Level Step
-        Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex $image.ImageIndex -DestinationImagePath $temp `
-            -DestinationName $name -CompressionType $script:TK.Settings.ExportCompression @dp | Out-Null
+    Invoke-TkWimEngine -Operation "Renaming index $Index" -WimlibAction {
+        Invoke-TkWimlib -ArgumentList @('info', $ImagePath, "$Index", $NewName, '--check')
+    } -DismAction {
+        $dp = Get-TkDismParameter
+        Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+        foreach ($image in @(Get-WindowsImage -ImagePath $ImagePath @dp)) {
+            $name = if ($image.ImageIndex -eq $Index) { $NewName } else { $image.ImageName }
+            Write-TkLog "Exporting index $($image.ImageIndex) as '$name'..." -Level Step
+            Export-WindowsImage -SourceImagePath $ImagePath -SourceIndex $image.ImageIndex -DestinationImagePath $temp `
+                -DestinationName $name -CompressionType $script:TK.Settings.ExportCompression -CheckIntegrity @dp | Out-Null
+        }
+        Move-Item -LiteralPath $temp -Destination $ImagePath -Force
     }
-    Move-Item -LiteralPath $temp -Destination $ImagePath -Force
     Write-TkLog "Index $Index renamed to '$NewName'." -Level Success
 }
 
@@ -65,15 +70,12 @@ function Export-TkWimIndex {
         [Parameter(Mandatory)][string]$DestinationImagePath,
         [ValidateSet('none', 'fast', 'max', 'recovery')][string]$Compression
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
     if (-not $Compression) {
         $Compression = if ($DestinationImagePath -match '(?i)\.esd$') { 'recovery' } else { $script:TK.Settings.ExportCompression }
     }
     foreach ($i in $Index) {
         $null = Invoke-TkStep -Name "Exporting index $i to $(Split-Path -Leaf $DestinationImagePath) ($Compression)" -ScriptBlock {
-            Export-WindowsImage -SourceImagePath $SourceImagePath -SourceIndex $i -DestinationImagePath $DestinationImagePath `
-                -CompressionType $Compression @dp | Out-Null
+            Export-TkWimImage -SourceImagePath $SourceImagePath -SourceIndex $i -DestinationImagePath $DestinationImagePath -Compression $Compression
         }
     }
 }
@@ -96,10 +98,28 @@ function Split-TkWim {
         [string]$DestinationPath = ([System.IO.Path]::ChangeExtension($ImagePath, '.swm')),
         [int]$FileSizeMB = $script:TK.Settings.SwmChunkSizeMB
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
-    Split-WindowsImage -ImagePath $ImagePath -SplitImagePath $DestinationPath -FileSize $FileSizeMB -CheckIntegrity @dp | Out-Null
+    Split-TkWimFile -ImagePath $ImagePath -DestinationPath $DestinationPath -FileSizeMB $FileSizeMB
     Write-TkLog "Split into '$DestinationPath' (+ numbered parts)." -Level Success
+}
+
+function Split-TkWimFile {
+    <# Splits a WIM into SWM parts - wimlib with DISM fallback (also used for FAT32 USB media). #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ImagePath,
+        [Parameter(Mandatory)][string]$DestinationPath,
+        [Parameter(Mandatory)][int]$FileSizeMB
+    )
+    $folder = Split-Path -Parent $DestinationPath
+    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($DestinationPath)
+    $removeParts = { Get-ChildItem -LiteralPath $folder -Filter "$baseName*.swm" -File -ErrorAction SilentlyContinue | Remove-Item -Force }
+    & $removeParts
+    Invoke-TkWimEngine -Operation 'Split' -WimlibAction {
+        Invoke-TkWimlib -ArgumentList @('split', $ImagePath, $DestinationPath, "$FileSizeMB", '--check')
+    } -CleanupAction $removeParts -DismAction {
+        $dp = Get-TkDismParameter
+        Split-WindowsImage -ImagePath $ImagePath -SplitImagePath $DestinationPath -FileSize $FileSizeMB -CheckIntegrity @dp | Out-Null
+    }
 }
 
 function Join-TkSwm {
@@ -109,16 +129,24 @@ function Join-TkSwm {
         [Parameter(Mandatory)][string]$SwmPath,
         [string]$DestinationImagePath = ([System.IO.Path]::ChangeExtension($SwmPath, '.wim'))
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
     $folder = Split-Path -Parent $SwmPath
-    $pattern = Join-Path $folder ('{0}*.swm' -f [System.IO.Path]::GetFileNameWithoutExtension($SwmPath))
-    foreach ($image in @(Get-WindowsImage -ImagePath $SwmPath @dp)) {
-        $null = Invoke-TkStep -Name "Merging index $($image.ImageIndex): $($image.ImageName)" -ScriptBlock {
+    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($SwmPath)
+    $pattern = Join-Path $folder "$baseName*.swm"
+    $parts = @(Get-ChildItem -Path $pattern -File | ForEach-Object { $_.FullName })
+    if ($parts.Count -eq 0) { throw "No split image parts found for '$SwmPath'." }
+    Invoke-TkWimEngine -Operation 'Join' -WimlibAction {
+        Invoke-TkWimlib -ArgumentList (@('join', '--check', $DestinationImagePath) + $parts)
+    } -CleanupAction {
+        Remove-Item -LiteralPath $DestinationImagePath -Force -ErrorAction SilentlyContinue
+    } -DismAction {
+        $dp = Get-TkDismParameter
+        foreach ($image in @(Get-WindowsImage -ImagePath $SwmPath @dp)) {
+            Write-TkLog "Merging index $($image.ImageIndex): $($image.ImageName)" -Level Step
             Export-WindowsImage -SourceImagePath $SwmPath -SplitImageFilePattern $pattern -SourceIndex $image.ImageIndex `
-                -DestinationImagePath $DestinationImagePath -CompressionType $script:TK.Settings.ExportCompression @dp | Out-Null
+                -DestinationImagePath $DestinationImagePath -CompressionType $script:TK.Settings.ExportCompression -CheckIntegrity @dp | Out-Null
         }
     }
+    Write-TkLog "Merged $($parts.Count) part(s) into '$DestinationImagePath'." -Level Success
 }
 
 function New-TkWimCapture {
@@ -131,16 +159,22 @@ function New-TkWimCapture {
         [string]$Description = $Name,
         [switch]$Append
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
-    $params = @{ CapturePath = $CapturePath; ImagePath = $ImagePath; Name = $Name; Description = $Description; CheckIntegrity = $true }
     $config = Join-Path $script:TK.Paths.Config 'WimScript.ini'
-    if (Test-Path -LiteralPath $config) { $params.ConfigFilePath = $config }
-    if ($Append) {
-        Add-WindowsImage @params @dp | Out-Null
-    }
-    else {
-        New-WindowsImage @params -CompressionType $script:TK.Settings.ExportCompression @dp | Out-Null
+    $hasConfig = Test-Path -LiteralPath $config
+    $existedBefore = Test-Path -LiteralPath $ImagePath
+    Invoke-TkWimEngine -Operation 'Capture' -WimlibAction {
+        $wimArgs = @($(if ($Append) { 'append' } else { 'capture' }), $CapturePath, $ImagePath, $Name, $Description, '--check')
+        if (-not $Append) { $wimArgs += ConvertTo-TkWimlibCompression -Compression $script:TK.Settings.ExportCompression }
+        if ($hasConfig) { $wimArgs += "--config=$config" }
+        Invoke-TkWimlib -ArgumentList $wimArgs
+    } -CleanupAction {
+        if (-not $existedBefore) { Remove-Item -LiteralPath $ImagePath -Force -ErrorAction SilentlyContinue }
+    } -DismAction {
+        $dp = Get-TkDismParameter
+        $params = @{ CapturePath = $CapturePath; ImagePath = $ImagePath; Name = $Name; Description = $Description; CheckIntegrity = $true }
+        if ($hasConfig) { $params.ConfigFilePath = $config }
+        if ($Append) { Add-WindowsImage @params @dp | Out-Null }
+        else { New-WindowsImage @params -CompressionType $script:TK.Settings.ExportCompression @dp | Out-Null }
     }
     Write-TkLog "Captured '$CapturePath' to '$ImagePath'." -Level Success
 }
@@ -153,10 +187,13 @@ function Expand-TkWim {
         [Parameter(Mandatory)][int]$Index,
         [Parameter(Mandatory)][string]$ApplyPath
     )
-    Initialize-TkDism
-    $dp = Get-TkDismParameter
     if (-not (Test-Path -LiteralPath $ApplyPath)) { $null = New-Item -Path $ApplyPath -ItemType Directory -Force }
-    Expand-WindowsImage -ImagePath $ImagePath -Index $Index -ApplyPath $ApplyPath -CheckIntegrity @dp | Out-Null
+    Invoke-TkWimEngine -Operation 'Apply' -WimlibAction {
+        Invoke-TkWimlib -ArgumentList @('apply', $ImagePath, "$Index", $ApplyPath, '--check')
+    } -DismAction {
+        $dp = Get-TkDismParameter
+        Expand-WindowsImage -ImagePath $ImagePath -Index $Index -ApplyPath $ApplyPath -CheckIntegrity @dp | Out-Null
+    }
     Write-TkLog "Index $Index applied to '$ApplyPath'." -Level Success
 }
 
@@ -264,6 +301,8 @@ function Get-TkDebugInfo {
         'PowerShell'       = $PSVersionTable.PSVersion.ToString()
         'DISM'             = $dismVersion
         'oscdimg.exe'      = $(if ($p = Get-TkOscdimgPath) { $p } else { '(not found - IMAPI2 fallback)' })
+        'WIM engine'       = "$($script:TK.Settings.WimEngine)$(if (-not (Test-TkWimlibEnabled)) { ' -> DISM' })"
+        'wimlib-imagex'    = $(if ($w = Get-TkWimlibPath) { "$w ($(Get-TkWimlibVersion))" } else { '(not found)' })
         'Log file'         = "$($script:TK.LogFile)"
         'Source selected'  = $script:TK.Session.SourceSelected
         'Mounted images'   = (@(Get-TkImage) | ForEach-Object { "$($_.Kind):$($_.Index)" }) -join ', '

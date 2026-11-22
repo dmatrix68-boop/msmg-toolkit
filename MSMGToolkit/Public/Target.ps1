@@ -256,9 +256,8 @@ function Copy-TkMediaToUsb {
 
     if ($split) {
         Write-TkLog "install.wim is larger than 4 GB - splitting into $($script:TK.Settings.SwmChunkSizeMB) MB parts..." -Level Step
-        $dp = Get-TkDismParameter
-        Split-WindowsImage -ImagePath $installWim -SplitImagePath (Join-Path $target 'sources\install.swm') `
-            -FileSize ([int]$script:TK.Settings.SwmChunkSizeMB) -CheckIntegrity @dp | Out-Null
+        Split-TkWimFile -ImagePath $installWim -DestinationPath (Join-Path $target 'sources\install.swm') `
+            -FileSizeMB ([int]$script:TK.Settings.SwmChunkSizeMB)
     }
     Write-TkLog "Setup media copied to $target" -Level Success
 }
